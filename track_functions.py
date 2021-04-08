@@ -1,7 +1,9 @@
+import numpy as np
 import time
+
 from stonesoup.types.groundtruth import GroundTruthPath, GroundTruthState
 from stonesoup.types.detection import Detection
-from stonesoup.types.array import StateVector
+from stonesoup.types.array import StateVector, StateVectors
 
 from stonesoup.types.track import Track
 from stonesoup.predictor.ensemble import EnsemblePredictor,PolynomialChaosEnsemblePredictor
@@ -44,18 +46,14 @@ def PF_Track(ground_truth, transition_model, measurement_model, prior):
     
     #Initialize Loop Variables
     track = Track()
-    timeDiff = []
     for measurement in measurements:
-        tic = time.perf_counter()
         prediction = predictor.predict(prior, timestamp=measurement.timestamp)
         hypothesis = SingleHypothesis(prediction, measurement)  # Group a prediction and measurement
         posterior = updater.update(hypothesis)
-        toc = time.perf_counter()
-        timeDiff.append(toc-tic)
         track.append(posterior)
         prior = track[-1]
 
-    return Track, timeDiff
+    return track
 
 def EnKF_Track(ground_truth, transition_model, measurement_model, prior):
     #Simulate Measurements
@@ -67,18 +65,14 @@ def EnKF_Track(ground_truth, transition_model, measurement_model, prior):
     
     #Initialize Loop Variables
     track = Track()
-    timeDiff = []
     for measurement in measurements:
-        tic = time.perf_counter()
         prediction = predictor.predict(prior, timestamp=measurement.timestamp)
         hypothesis = SingleHypothesis(prediction, measurement)  # Group a prediction and measurement
         posterior = updater.update(hypothesis)
-        toc = time.perf_counter()
-        timeDiff.append(toc-tic)
         track.append(posterior)
         prior = track[-1]
 
-    return Track, timeDiff
+    return track
 
 def EnSRF_Track(ground_truth, transition_model, measurement_model, prior):
     #Simulate Measurements
@@ -90,18 +84,14 @@ def EnSRF_Track(ground_truth, transition_model, measurement_model, prior):
     
     #Initialize Loop Variables
     track = Track()
-    timeDiff = []
     for measurement in measurements:
-        tic = time.perf_counter()
         prediction = predictor.predict(prior, timestamp=measurement.timestamp)
         hypothesis = SingleHypothesis(prediction, measurement)  # Group a prediction and measurement
         posterior = updater.update(hypothesis)
-        toc = time.perf_counter()
-        timeDiff.append(toc-tic)
         track.append(posterior)
         prior = track[-1]
-
-    return Track, timeDiff
+        
+    return track
 
 def PCEnKF_Track(ground_truth, transition_model, measurement_model, prior):
     #Simulate Measurements
@@ -113,20 +103,16 @@ def PCEnKF_Track(ground_truth, transition_model, measurement_model, prior):
     
     #Initialize Loop Variables
     track = Track()
-    timeDiff = []
     for measurement in measurements:
-        tic = time.perf_counter()
         prediction = predictor.predict(prior, timestamp=measurement.timestamp)
         hypothesis = SingleHypothesis(prediction, measurement)  # Group a prediction and measurement
         posterior = updater.update(hypothesis)
-        toc = time.perf_counter()
-        timeDiff.append(toc-tic)
         track.append(posterior)
         prior = track[-1]
+        
+    return track
 
-    return Track, timeDiff
-
-def PCEnSRF_Track(ground_truth, transition_model, measurement_model, prior):
+def PCEnSRF_Track(ground_truth, transition_model, measurement_model, prior, timestats=False):
     #Simulate Measurements
     measurements = simulate_measurements(ground_truth,measurement_model)
     
@@ -146,5 +132,18 @@ def PCEnSRF_Track(ground_truth, transition_model, measurement_model, prior):
         timeDiff.append(toc-tic)
         track.append(posterior)
         prior = track[-1]
+    return track
 
-    return Track, timeDiff
+def calc_RMSE(ground_truth_list, track_list):
+    """This function computes the RMSE of filter with respect to time.
+    It accepts lists of ground truth paths, and tracks. It returns an instance
+    of `StateVectors` in which columns contain Vectors of the RMSE at a given time"""
+    if len(ground_truth_list) != len(track_list):
+        return NotImplemented
+    residual = np.zeros([ground_truth_list[0].states[0].ndim,len(ground_truth_list[0].states)])
+    for instance in range(len(ground_truth_list)):
+        ground_truth_states = StateVectors([e.state_vector for e in ground_truth_list[instance].states])
+        tracked_states = StateVectors([e.state_vector for e in track_list[instance].states])
+        residual = (tracked_states - ground_truth_states)**2 + residual
+    RMSE = np.sqrt(residual/len(ground_truth_list[0].states))
+    return RMSE

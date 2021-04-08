@@ -18,7 +18,7 @@ from stonesoup.types.state import ParticleState
 
 
 from track_functions import generate_ground_truth, PF_Track, EnKF_Track, \
-                             EnSRF_Track, PCEnKF_Track, PCEnSRF_Track
+                             EnSRF_Track, PCEnKF_Track, PCEnSRF_Track, calc_RMSE
 
 
 #clear all
@@ -77,33 +77,33 @@ transition_model = CombinedLinearGaussianTransitionModel([ConstantTurn(
 
 
 
-Monte_Carlo_Iterations = 100
+Monte_Carlo_Iterations = 5
 
 ParticleFilter = []
 EnsembleKalmanFilter = []
 EnsembleSqrtFilter = []
 PCEnsembleFilter = []
 PCEnsembleSqrtFilter = []
+ground_truth = []
 
 for i in range(Monte_Carlo_Iterations):
     tic = time.perf_counter()
-    ground_truth = generate_ground_truth(transition_model,time_span)
-    ParticleFilter.append(PF_Track(ground_truth, transition_model,measurement_model,PFprior))
-    EnsembleKalmanFilter.append(EnKF_Track(ground_truth, transition_model,measurement_model,EnKFprior))
-    EnsembleSqrtFilter.append(EnSRF_Track(ground_truth, transition_model,measurement_model,EnSRFprior))
-    PCEnsembleFilter.append(PCEnKF_Track(ground_truth, transition_model,measurement_model,PCEnKFprior))
-    PCEnsembleSqrtFilter.append(PCEnSRF_Track(ground_truth, transition_model,measurement_model,PCEnSRFprior))
+    ground_truth.append(generate_ground_truth(transition_model,time_span))
+    #ParticleFilter.append(PF_Track(ground_truth[i], transition_model,measurement_model,PFprior))
+    EnsembleKalmanFilter.append(EnKF_Track(ground_truth[i], transition_model,measurement_model,EnKFprior))
+    #EnsembleSqrtFilter.append(EnSRF_Track(ground_truth[i], transition_model,measurement_model,EnSRFprior))
+    #PCEnsembleFilter.append(PCEnKF_Track(ground_truth[i], transition_model,measurement_model,PCEnKFprior))
+    #PCEnsembleSqrtFilter.append(PCEnSRF_Track(ground_truth[i], transition_model,measurement_model,PCEnSRFprior))
     toc = time.perf_counter()
     print(f"One iteration complete in {toc - tic:0.4f} seconds")
     
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
+print('Monte Carlo Simulations Complete!')
+
+
+
+RMSE_EnKF = calc_RMSE(ground_truth,EnsembleKalmanFilter)
+RMSE_EnSRF = calc_RMSE(ground_truth,EnsembleSqrtFilter)
+RMSE_PCEnKF = calc_RMSE(ground_truth,PCEnsembleFilter)
+RMSE_PCEnSRF = calc_RMSE(ground_truth,PCEnsembleSqrtFilter)
+
     
