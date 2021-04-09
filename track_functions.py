@@ -1,9 +1,11 @@
 import numpy as np
+import matplotlib.pyplot as plt
 import time
+import pickle
 
 from stonesoup.types.groundtruth import GroundTruthPath, GroundTruthState
 from stonesoup.types.detection import Detection
-from stonesoup.types.array import StateVector, StateVectors
+from stonesoup.types.array import StateVector, StateVectors, CovarianceMatrix
 
 from stonesoup.types.track import Track
 from stonesoup.predictor.ensemble import EnsemblePredictor,PolynomialChaosEnsemblePredictor
@@ -15,9 +17,14 @@ from stonesoup.predictor.particle import ParticlePredictor
 from stonesoup.resampler.particle import SystematicResampler
 from stonesoup.updater.particle import ParticleUpdater
 
+from initialization_functions import generate_initial_states, generate_models
+
 def generate_ground_truth(transition_model,time_span):
     time_interval = time_span[1]-time_span[0]
-    truth = GroundTruthPath([GroundTruthState(StateVector([1000, 0, 2650, 150, 200, 0]),
+    x0=StateVector([1000, 0, 2650, 150, 200, 0])
+    P0=CovarianceMatrix(np.diag(np.array([100,5,100,5,100,5]))**2);#initial covariance matrix 
+    xt0=x0+np.sqrt(P0)@np.random.normal(1,1,6).reshape(([6,1]));
+    truth = GroundTruthPath([GroundTruthState(xt0,
                                               timestamp=time_span[0])])
     for k in range(1, len(time_span)):
         truth.append(GroundTruthState(
@@ -112,7 +119,7 @@ def PCEnKF_Track(ground_truth, transition_model, measurement_model, prior):
         
     return track
 
-def PCEnSRF_Track(ground_truth, transition_model, measurement_model, prior, timestats=False):
+def PCEnSRF_Track(ground_truth, transition_model, measurement_model, prior):
     #Simulate Measurements
     measurements = simulate_measurements(ground_truth,measurement_model)
     
@@ -132,18 +139,33 @@ def PCEnSRF_Track(ground_truth, transition_model, measurement_model, prior, time
         timeDiff.append(toc-tic)
         track.append(posterior)
         prior = track[-1]
+
     return track
 
-def calc_RMSE(ground_truth_list, track_list):
-    """This function computes the RMSE of filter with respect to time.
-    It accepts lists of ground truth paths, and tracks. It returns an instance
-    of `StateVectors` in which columns contain Vectors of the RMSE at a given time"""
-    if len(ground_truth_list) != len(track_list):
-        return NotImplemented
-    residual = np.zeros([ground_truth_list[0].states[0].ndim,len(ground_truth_list[0].states)])
-    for instance in range(len(ground_truth_list)):
-        ground_truth_states = StateVectors([e.state_vector for e in ground_truth_list[instance].states])
-        tracked_states = StateVectors([e.state_vector for e in track_list[instance].states])
-        residual = (tracked_states - ground_truth_states)**2 + residual
-    RMSE = np.sqrt(residual/len(ground_truth_list[0].states))
-    return RMSE
+def monte_carlo_runs(time_span, monte_carlo_iterations):
+    transition_model, measurement_model = generate_models()
+    try:
+        with open('initial_state_list.py', 'rb') as f:
+            initial_states = pickle.load(f)
+    except:
+        print('No initial states specified, generating now:')
+        initial_states = generate_initial_states()
+    EnKF_runs = []
+    EnSRF_runs = []
+    PCEnKF_runs = []
+    PCEnSRF_runs = []
+    ground_truth = []
+    print('Monte Carlo runs starting:')
+    for i in range(monte_carlo_iterations):
+        tic = time.perf_counter()
+        ground_truth.append(generate_ground_truth(transition_model,time_span))
+        EnKF_runs.append(EnKF_Track(ground_truth[i], transition_model,measurement_model,initial_states[0]))
+        EnSRF_runs.append(EnSRF_Track(ground_truth[i], transition_model,measurement_model,initial_states[1]))
+        PCEnKF_runs.append(PCEnKF_Track(ground_truth[i], transition_model,measurement_model,initial_states[2]))
+        PCEnSRF_runs.append(PCEnSRF_Track(ground_truth[i], transition_model,measurement_model,initial_states[3]))
+        toc = time.perf_counter()
+        print(f"Iteration number {i} complete in {toc - tic:0.4f} seconds")
+ 
+    print('Monte Carlo Simulations Complete!')
+    
+    return EnKF_runs, EnSRF_runs, PCEnKF_runs, PCEnSRF_runs, ground_truth
