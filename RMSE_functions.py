@@ -1,5 +1,5 @@
 import numpy as np
-import matplotlib as plt
+import matplotlib.pyplot as plt
 from stonesoup.types.array import StateVectors
 
 def calc_RMSE(ground_truth_list, track_list):
@@ -29,6 +29,9 @@ def plot_RMSE(RMSE_LIST,NAME_LIST):
         vz=[RMSE_LIST[instance][5]]
     t=np.arange(len(RMSE_LIST[0][0]))
     plots = []
+    
+    
+    
     for instance in range(len(RMSE_LIST)):
         fig = plt.figure
         plt.subplot(3, 2, 1)

@@ -51,5 +51,5 @@ def generate_models():
     transition_model = CombinedLinearGaussianTransitionModel([ConstantTurn(
                                                              turn_noise_diff_coeffs=np.zeros([2]),
                                                              turn_rate=omg),
-                                                             ConstantVelocity(5)])
+                                                             ConstantVelocity(50)])
     return transition_model, measurement_model
