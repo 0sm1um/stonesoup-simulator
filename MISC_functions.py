@@ -1,5 +1,11 @@
 import numpy as np
+import pickle
 
+
+def pack_RMSE_data(filename, datalist):
+    with open(filename, 'wb') as f:
+        pickle.dump(datalist, f)
+    
 
 def calc_std_error(data):
     """This function accepts a numpy array as input, and outputs an array of 
