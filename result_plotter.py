@@ -15,13 +15,17 @@ import matplotlib.ticker as mplt
 import os
 import glob 
 
-root_path = '/Users/orourksm/Documents/ATRC_Student_Work/Hiles/PCEnKF-Simulation'
+root_path = '/Users/orourksm/Documents/ATRC_Student_Work/Hiles' 
+sims_path = 'PCEnKF-Simulation'
 linear_sim_path = '2D_Linear_Tx_Meas_Model'
 nonlinear_sim_path = '50_Runs_Nonlinear_Measurement_Model'
+paper_path = 'stone-soup-pce-filter-docs/figures'
 
-linear_inpath = os.path.join(root_path, linear_sim_path, '')
-nonlinear_inpath = os.path.join(root_path, nonlinear_sim_path, '')
+linear_inpath = os.path.join(root_path, sims_path, linear_sim_path, '')
+nonlinear_inpath = os.path.join(root_path, sims_path, nonlinear_sim_path, '')
+paper_outpath = os.path.join(root_path, paper_path, '')
 
+# This technique gives you a list of files that match a "glob" regular expression pattern.
 linear_rmse_files = glob.glob(linear_inpath + 'rmse_*.txt')
 nonlinear_rmse_files = glob.glob(nonlinear_inpath + 'rmse_*.txt')
 
@@ -51,6 +55,9 @@ height = width*golden_ratio
 # plt.rc('axes', labelsize=8)
 
 # Now trying "SciencePlots" https://github.com/garrettj403/SciencePlots/
+# Note that this has to be installed in your Python environment before you use it. 
+# This automatically sizes the figure, adds the color/linestyle cycle, formats axes, etc.
+# to make the figure compliant with IEEE's recommended formats. It's neat!
 plt.style.use(['science','ieee'])
 
 
@@ -64,7 +71,7 @@ titles = [r'$x$ - position', r'$v_x$ - velocity', r'$y$ - position', r'$v_y$  - 
 with open(nonlinear_rmse_files[0], 'rb') as f:
     nonlinear_RMSE_data = list(itertools.chain.from_iterable(pickle.load(f)))
 
-#%% Linear example data import 
+#%% Linear example data import & munging
 linear_RMSE_data = []
 for file in linear_rmse_files: 
     with open(file, 'rb') as f:
@@ -85,7 +92,9 @@ for idx, axis in enumerate(nonlin_axes.flatten()):
     EnKF_line = axis.plot(nonlinear_RMSE_data[nonlin_EnKF_idx][idx], 'b', label='EnKF')
     SREnKF_line = axis.plot(nonlinear_RMSE_data[nonlin_SREnKF_idx][idx], 'r--', label='SREnKF')
     
-    # Force similar datatypes to share axes -- let's see if this works. 
+    # Force similar datatypes to share y-axes -- thus, if you want to make the 
+    # y-axes independent, comment this block out. OR if you want new limits for
+    # the y-axes, add axis.set_ylim(arguments) *after* the call to sharey. 
     if idx in position_mapping:
         axis.sharey(nonlin_axes[0, position_mapping[0]])
     elif idx in velocity_mapping:
@@ -106,7 +115,7 @@ nonlin_fig.legend(handles, labels, frameon=True, loc='lower center', ncol = 3,
 #nonlin_fig.supylabel(r'${RMSE}$')
 nonlin_fig.align_labels()
 nonlin_fig.align_ylabels()
-plt.savefig('nonlinear_EnSRF_vs_EnKF.pdf')
+plt.savefig(os.path.join(paper_outpath,'nonlinear_EnSRF_vs_EnKF.pdf'))
 plt.show()
 
 #%% Linear plotting: EnKF
@@ -127,9 +136,9 @@ for idx, axis in enumerate(linear_axes.flatten()):
     
     # this example has too many ticks for the position axis, let's force that down.
     if idx == 0:
-        axis.yaxis.set_major_locator(mplt.MultipleLocator(5))
-    elif idx == 1: 
         axis.yaxis.set_major_locator(mplt.MultipleLocator(1))
+    elif idx == 1: 
+        axis.yaxis.set_major_locator(mplt.MultipleLocator(0.5))
         
     # Force similar datatypes to share axes. 
     if idx in position_mapping:
@@ -151,7 +160,7 @@ linear_fig.legend(handles, labels, frameon=True, loc='lower center', ncol = 2,  
 #nonlin_fig.supylabel(r'${RMSE}$')
 linear_fig.align_labels()
 linear_fig.align_ylabels()
-plt.savefig('linear_EnKF_vs_KF.pdf')
+plt.savefig(os.path.join(paper_outpath,'linear_EnKF_vs_KF.pdf'))
 plt.show()
 
 #%% Linear plotting: EnSRF
@@ -195,5 +204,5 @@ linear_fig.legend(handles, labels, frameon=True, loc='lower center', ncol = 2,  
 #nonlin_fig.supylabel(r'${RMSE}$')
 linear_fig.align_labels()
 linear_fig.align_ylabels()
-plt.savefig('linear_EnSRF_vs_KF.pdf')
+plt.savefig(os.path.join(paper_outpath, 'linear_EnSRF_vs_KF.pdf'))
 plt.show()
