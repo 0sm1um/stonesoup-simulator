@@ -6,11 +6,11 @@ from stonesoup.types.detection import Detection
 from stonesoup.types.array import StateVector, CovarianceMatrix
 
 from stonesoup.types.track import Track
-from stonesoup.predictor.kalman import KalmanPredictor
+from stonesoup.predictor.kalman import KalmanPredictor, ExtendedKalmanPredictor
 from stonesoup.predictor.ensemble import EnsemblePredictor
 from stonesoup.types.hypothesis import SingleHypothesis
 from stonesoup.updater.ensemble import (EnsembleUpdater, EnsembleSqrtUpdater)
-from stonesoup.updater.kalman import KalmanUpdater
+from stonesoup.updater.kalman import KalmanUpdater, ExtendedKalmanUpdater
 
 from stonesoup.predictor.particle import ParticlePredictor
 from stonesoup.resampler.particle import SystematicResampler
@@ -62,6 +62,25 @@ def KF_Track(ground_truth, transition_model, measurement_model, prior):
     #Create Predictor and Updater
     predictor = KalmanPredictor(transition_model)
     updater = KalmanUpdater(measurement_model)
+    
+    #Initialize Loop Variables
+    track = Track()
+    for measurement in measurements:
+        prediction = predictor.predict(prior, timestamp=measurement.timestamp)
+        hypothesis = SingleHypothesis(prediction, measurement)  # Group a prediction and measurement
+        posterior = updater.update(hypothesis)
+        track.append(posterior)
+        prior = track[-1]
+        
+    return track
+
+def EKF_Track(ground_truth, transition_model, measurement_model, prior):
+    #Simulate Measurements
+    measurements = simulate_measurements(ground_truth,measurement_model)
+    
+    #Create Predictor and Updater
+    predictor = ExtendedKalmanPredictor(transition_model)
+    updater = ExtendedKalmanUpdater(measurement_model)
     
     #Initialize Loop Variables
     track = Track()
@@ -200,11 +219,11 @@ def monte_carlo_runs_Niu(time_span, monte_carlo_iterations):
     return EnKF_runs, EnSRF_runs, PCEnKF_runs, PCEnSRF_runs, ground_truth
 
 
-def linear_2d_monte_carlo_runs(time_span, monte_carlo_iterations):
+def linear_2d_monte_carlo_runs(time_span, monte_carlo_iterations, num_vectors):
     
     transition_model, measurement_model = generate_2d_linear_models()
     
-    initial_states = generate_initial_2d_states()
+    initial_states = generate_initial_2d_states(num_vectors)
     
     KF_runs = []
     EnKF_runs = []
@@ -224,12 +243,13 @@ def linear_2d_monte_carlo_runs(time_span, monte_carlo_iterations):
     
     return KF_runs, EnKF_runs, EnSRF_runs, ground_truth
 
-def nonlinear_2d_monte_carlo_runs(time_span, monte_carlo_iterations):
+def nonlinear_2d_monte_carlo_runs(time_span, monte_carlo_iterations, num_vectors):
     
     transition_model, measurement_model = generate_2d_linear_models()
     
-    initial_states = generate_initial_2d_states()
+    initial_states = generate_initial_2d_states(num_vectors)
     
+    EKF_runs = []
     EnKF_runs = []
     EnSRF_runs = []
     ground_truth = []
@@ -237,6 +257,7 @@ def nonlinear_2d_monte_carlo_runs(time_span, monte_carlo_iterations):
     for i in range(monte_carlo_iterations):
         tic = time.perf_counter()
         ground_truth.append(generate_2d_ground_truth(transition_model,time_span))
+        EKF_runs.append(KF_Track(ground_truth[i], transition_model, measurement_model, initial_states[0]))
         EnKF_runs.append(EnKF_Track(ground_truth[i], transition_model,measurement_model,initial_states[1]))
         EnSRF_runs.append(EnSRF_Track(ground_truth[i], transition_model,measurement_model,initial_states[2]))
         toc = time.perf_counter()
@@ -244,4 +265,4 @@ def nonlinear_2d_monte_carlo_runs(time_span, monte_carlo_iterations):
  
     print('Monte Carlo Simulations Complete!')
     
-    return EnKF_runs, EnSRF_runs, ground_truth
+    return EKF_runs, EnKF_runs, EnSRF_runs, ground_truth

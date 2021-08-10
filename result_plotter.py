@@ -15,11 +15,11 @@ import matplotlib.ticker as mplt
 import os
 import glob 
 
-root_path = '/Users/orourksm/Documents/ATRC_Student_Work/Hiles' 
-sims_path = 'PCEnKF-Simulation'
+root_path = 'C:/Users/0sm1um' 
+sims_path = 'simulation/'
 linear_sim_path = '2D_Linear_Tx_Meas_Model'
 nonlinear_sim_path = '50_Runs_Nonlinear_Measurement_Model'
-paper_path = 'stone-soup-pce-filter-docs/figures'
+paper_path = 'EnKFDocs/figures/'
 
 linear_inpath = os.path.join(root_path, sims_path, linear_sim_path, '')
 nonlinear_inpath = os.path.join(root_path, sims_path, nonlinear_sim_path, '')
@@ -89,8 +89,9 @@ for idx, axis in enumerate(nonlin_axes.flatten()):
     
     axis.set(title=title, xlabel=x_label, ylabel=y_labels[idx])
     axis.tick_params(length=1)
-    EnKF_line = axis.plot(nonlinear_RMSE_data[nonlin_EnKF_idx][idx], 'b', label='EnKF')
-    SREnKF_line = axis.plot(nonlinear_RMSE_data[nonlin_SREnKF_idx][idx], 'r--', label='SREnKF')
+    EKF_Line = axis.plot(nonlinear_RMSE_data[0][idx], label='EKF')
+    EnKF_line = axis.plot(nonlinear_RMSE_data[1][idx], 'b', label='EnKF')
+    SREnKF_line = axis.plot(nonlinear_RMSE_data[2][idx], 'r--', label='SREnKF')
     
     # Force similar datatypes to share y-axes -- thus, if you want to make the 
     # y-axes independent, comment this block out. OR if you want new limits for
@@ -130,8 +131,8 @@ for idx, axis in enumerate(linear_axes.flatten()):
     axis.tick_params(length=1)
     KF_line = axis.plot(linear_RMSE_data[0][lin_KF_idx][idx], label='KF')
     EnKF_line = axis.plot(linear_RMSE_data[2][lin_EnKF_idx][idx], label='EnKF, $M = 5$')
-    EnKF50_line = axis.plot(linear_RMSE_data[1][lin_EnKF_idx][idx], label='EnKF, $M = 50$')
-    EnKF500_line = axis.plot(linear_RMSE_data[0][lin_EnKF_idx][idx], label='EnKF, $M = 500$')
+    EnKF50_line = axis.plot(linear_RMSE_data[1][lin_EnKF_idx][idx], label='EnKF, $M = 10$')
+    EnKF500_line = axis.plot(linear_RMSE_data[0][lin_EnKF_idx][idx], label='EnKF, $M = 15$')
     
     
     # this example has too many ticks for the position axis, let's force that down.
@@ -175,8 +176,8 @@ for idx, axis in enumerate(linear_axes.flatten()):
     axis.tick_params(length=1)
     KF_line = axis.plot(linear_RMSE_data[0][lin_KF_idx][idx], label='KF')
     SREnKF_line = axis.plot(linear_RMSE_data[2][lin_SREnKF_idx][idx], label=r'EnSRF, $M = 5$')
-    SREnKF50_line = axis.plot(linear_RMSE_data[1][lin_SREnKF_idx][idx], label=r'EnSRF, $M = 50$')
-    SREnKF500_line = axis.plot(linear_RMSE_data[0][lin_SREnKF_idx][idx], label=r'EnSRF, $M = 500$')
+    SREnKF50_line = axis.plot(linear_RMSE_data[1][lin_SREnKF_idx][idx], label=r'EnSRF, $M = 10$')
+    SREnKF500_line = axis.plot(linear_RMSE_data[0][lin_SREnKF_idx][idx], label=r'EnSRF, $M = 15$')
     
     # this example has too many ticks for the position axis, let's force that down.
     if idx == 0:

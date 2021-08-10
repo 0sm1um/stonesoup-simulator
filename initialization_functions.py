@@ -10,15 +10,13 @@ from stonesoup.models.measurement.nonlinear import CartesianToElevationBearingRa
 from stonesoup.models.measurement.linear import LinearGaussian
 
 
-def generate_initial_2d_states():
+def generate_initial_2d_states(num_vectors):
     #Initialization
     timestamp = datetime.datetime(2021, 4, 2, 12, 28, 57)
     
     x0=StateVector([0, 1, 0, 1]);                  #initial filter state value
     P0=CovarianceMatrix(np.diag(np.array([0,0.05,0,0.05]))**2);#initial covariance matrix 
-       
-    num_vectors = 100
-    
+        
     InitialEnsemble = EnsembleState.generate_ensemble(mean=x0,
                                                       covar=P0,
                                                       num_vectors=num_vectors)
