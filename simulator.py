@@ -103,5 +103,5 @@ class simulator():
             posterior = updater.update(hypothesis)
             track.append(posterior)
             prior = track[-1]
-        return track
+        return ground_truth, track
     
