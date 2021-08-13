@@ -1,3 +1,6 @@
+"""
+@author: John Hiles
+"""
 import numpy as np
 import matplotlib.pyplot as plt
 import pickle
@@ -25,7 +28,7 @@ from simulator import simulator
     This script represents the code used to gather the data used in [PAPER HERE].
     
     This repository is structured such that different stone soup algorithms 
-    can be run relativley rapidly. Hopefully I've made it modular enough to 
+    can be run rapidly. Hopefully I've made it modular enough to 
     allow swapping of things like algorithms, and "experiments" by replacing
     the desired transition and measurement models.
     
@@ -38,8 +41,6 @@ from simulator import simulator
     The simulator then, is used to gather "Track" instances, and with a list 
     of tracks, RMSE can then be calculated.
 """
-
-
 
 i = 10
 num_vectors = i*5
