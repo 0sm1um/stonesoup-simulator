@@ -15,16 +15,18 @@ import matplotlib.ticker as mplt
 import os
 import glob 
 
-root_path = 'C:/Users/0sm1um' 
-sims_path = 'simulation/'
+root_path = os.getcwd()
+#sims_path = 'simulation/'
+
+cwd = os.getcwd()
 linear_sim_path = '2D_Linear_Tx_Meas_Model'
 nonlinear_sim_path = '50_Runs_Nonlinear_Measurement_Model'
-paper_path = 'EnKFDocs/figures/'
+paper_path = 'figures'
 
-linear_inpath = os.path.join(root_path, sims_path, linear_sim_path, '')
-nonlinear_inpath = os.path.join(root_path, sims_path, nonlinear_sim_path, '')
-paper_outpath = os.path.join(root_path, paper_path, '')
-
+linear_inpath = os.path.join(root_path, linear_sim_path, '')
+nonlinear_inpath = os.path.join(root_path, nonlinear_sim_path, '')
+paper_outpath = os.path.join(cwd,paper_path, '')
+print(paper_outpath)
 # This technique gives you a list of files that match a "glob" regular expression pattern.
 linear_rmse_files = glob.glob(linear_inpath + 'rmse_*.txt')
 nonlinear_rmse_files = glob.glob(nonlinear_inpath + 'rmse_*.txt')
