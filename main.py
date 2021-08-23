@@ -15,7 +15,8 @@ from stonesoup.models.measurement.linear import LinearGaussian
 from stonesoup.updater.ensemble import (EnsembleUpdater, EnsembleSqrtUpdater)
 from stonesoup.updater.kalman import KalmanUpdater, ExtendedKalmanUpdater
 from stonesoup.predictor.ensemble import EnsemblePredictor
-from stonesoup.predictor.kalman import ExtendedKalmanPredictor
+from stonesoup.predictor.kalman import KalmanPredictor, ExtendedKalmanPredictor
+from stonesoup.models.measurement.nonlinear import CartesianToBearingRange
 
 
 from RMSE_functions import calc_RMSE, plot_RMSE
@@ -70,14 +71,20 @@ same models used in the StoneSoup Kalman Filter examples.
 
 q_x = 0.05
 q_y = 0.05
+sensor_x = 50  # Placing the sensor off-centre
+sensor_y = 0
+
 transition_model = CombinedLinearGaussianTransitionModel([ConstantVelocity(q_x),
                                                       ConstantVelocity(q_y)])
-measurement_model = LinearGaussian(
-ndim_state=4,  # Number of state dimensions (position and velocity in 2D)
-mapping=(0, 2),  # Mapping measurement vector index to state index
-noise_covar=np.array([[5, 0],  # Covariance matrix for Gaussian PDF
-                      [0, 5]])
+measurement_model = CartesianToBearingRange(
+ndim_state=4,
+mapping=(0, 2),
+noise_covar=np.diag([np.radians(0.2), 1]),  # Covariance matrix. 0.2 degree variance in
+# bearing and 1 metre in range
+translation_offset=np.array([[sensor_x], [sensor_y]])  # Offset measurements to location of
+# sensor in cartesian.
 )
+
 
 """
 Here we instantiate the simulator with our transition and measurement model.
@@ -85,7 +92,7 @@ This class is capable of generating sets of ground truth points, and simulate
 measurements for our recursive filters.
 """
 
-simulator = simulator(transition_model=transition_model,
+nonlinear_simulator = simulator(transition_model=transition_model,
                       measurement_model=measurement_model)
 
 """
@@ -127,17 +134,17 @@ EnKF_monte_carlo_runs = []
 EnSRF_monte_carlo_runs = []
 for i in range(monte_carlo_iterations):
     print(i+1)
-    EKF_monte_carlo_runs.append(simulator.simulate_track(predictor = EKFpredictor, 
+    EKF_monte_carlo_runs.append(nonlinear_simulator.simulate_track(predictor = EKFpredictor, 
                                         updater = EKFupdater, 
                                         initial_state = initial_ground_truth,
                                         prior = EKFprior,
                                         time_span=time_span))
-    EnKF_monte_carlo_runs.append(simulator.simulate_track(predictor = EnKFpredictor, 
+    EnKF_monte_carlo_runs.append(nonlinear_simulator.simulate_track(predictor = EnKFpredictor, 
                                         updater = EnKFupdater, 
                                         initial_state = initial_ground_truth,
                                         prior = EnKFprior,
                                         time_span=time_span))
-    EnSRF_monte_carlo_runs.append(simulator.simulate_track(predictor = EnSRFpredictor, 
+    EnSRF_monte_carlo_runs.append(nonlinear_simulator.simulate_track(predictor = EnSRFpredictor, 
                                         updater = EnSRFupdater, 
                                         initial_state = initial_ground_truth,
                                         prior = EnKFprior,
@@ -156,7 +163,8 @@ RMSE_EKF = calc_RMSE(EKF_monte_carlo_runs[0],EKF_monte_carlo_runs[1])
 RMSE_EnKF = calc_RMSE(EnKF_monte_carlo_runs[0],EnKF_monte_carlo_runs[1])
 RMSE_EnSRF = calc_RMSE(EnSRF_monte_carlo_runs[0],EnSRF_monte_carlo_runs[1])
 
-RMSE_LIST = [RMSE_EKF, RMSE_EnKF, RMSE_EnSRF]
+#RMSE_LIST = [RMSE_EKF, RMSE_EnKF, RMSE_EnSRF]
+RMSE_LIST = [RMSE_EnKF]
 
 """
 Now that we have our RMSE data, it is a matter of plotting it. For the paper,
@@ -177,13 +185,82 @@ suffix = 'Ensemble.txt'
 filename = prefix+str(num_vectors)+suffix
 pack_RMSE_data(filename, RMSE_LIST)
 
+
+"""
+Now, we will run the convergence experiments, to verify that our results 
+converge with the results of the Kalman Filter for Linear Gaussian results.
+Specifically, we will switch our nonlinear measurement model to a Linear
+Gaussian one.
+"""
+
+   
+measurement_model = LinearGaussian(
+ndim_state=4,  # Number of state dimensions (position and velocity in 2D)
+mapping=(0, 2),  # Mapping measurement vector index to state index
+noise_covar=np.array([[5, 0],  # Covariance matrix for Gaussian PDF
+                      [0, 5]])
+)
+linear_simulator = simulator(transition_model=transition_model,
+                      measurement_model=measurement_model)
+KFpredictor = KalmanPredictor(transition_model)
+KFupdater = KalmanUpdater(measurement_model)
+EnKFupdater = EnsembleUpdater(measurement_model)
+EnSRFupdater = EnsembleSqrtUpdater(measurement_model)
+
+
+"""
+To get our data, we will run three simulations with varying values for 
+num_vectors, which corresponds to M in our paper. The number of vectors in the
+ensemble.
+
+Structurally, we have two loops. The outer loop determines how many vectors
+are in our ensemble, the inner loop runs the simulation to gather the data.
+"""
+
+KFprior = GaussianState(state_vector=StateVector([0, 1, 0, 1]),
+              covar = CovarianceMatrix(np.diag(np.array([0,0.05,0,0.05]))**2),
+              timestamp = time_span[0])
+
+KF_monte_carlo_runs = []
+EnKF_monte_carlo_runs = []
+EnSRF_monte_carlo_runs = []
+for num_vectors in range(3):
+    EnKFprior = EnsembleState.from_gaussian_state(KFprior, 5*(num_vectors+1))
+    EnSRFprior = EnsembleState.from_gaussian_state(KFprior, 5*(num_vectors+1))
+    for i in range(monte_carlo_iterations):
+        KF_monte_carlo_runs.append(linear_simulator.simulate_track(predictor = KFpredictor, 
+                                            updater = KFupdater, 
+                                            initial_state = initial_ground_truth,
+                                            prior = KFprior,
+                                            time_span=time_span))
+        EnKF_monte_carlo_runs.append(linear_simulator.simulate_track(predictor = EnKFpredictor, 
+                                            updater = EnKFupdater, 
+                                            initial_state = initial_ground_truth,
+                                            prior = EnKFprior,
+                                            time_span=time_span))
+        EnSRF_monte_carlo_runs.append(linear_simulator.simulate_track(predictor = EnSRFpredictor, 
+                                            updater = EnSRFupdater, 
+                                            initial_state = initial_ground_truth,
+                                            prior = EnKFprior,
+                                            time_span=time_span))
+    RMSE_KF = calc_RMSE(KF_monte_carlo_runs[0],KF_monte_carlo_runs[1])
+    RMSE_EnKF = calc_RMSE(EnKF_monte_carlo_runs[0],EnKF_monte_carlo_runs[1])
+    RMSE_EnSRF = calc_RMSE(EnSRF_monte_carlo_runs[0],EnSRF_monte_carlo_runs[1])
+    
+    prefix = 'rmse_size_'
+    suffix = '_Ensemble.pkl'
+    filename = prefix+str(num_vectors)+suffix
+    pack_RMSE_data(filename, RMSE_LIST)
+
+
 """
 This final block of code, serves as a quick preview of the RMSE results for
 someone running simulations. This preview window is especially useful for 
 debugging filters in development, as you can see at a glance if an algorithm
 begins to diverge or perform worse than expected.
 """
-
+RMSE_LIST = [RMSE_EnKF]
+#RMSE_LIST = [RMSE_KF, RMSE_EnKF, RMSE_EnSRF]
 plot_time_span = np.array([dt*i for i in range(tRange)])
 j=0
 for RMSE in RMSE_LIST:

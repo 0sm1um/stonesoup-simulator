@@ -28,9 +28,6 @@ from stonesoup.predictor.particle import ParticlePredictor
 from stonesoup.resampler.particle import SystematicResampler
 from stonesoup.updater.particle import ParticleUpdater
 
-from initialization_functions import generate_initial_states_Niu, generate_models_Niu,\
-                                    generate_linear_models_Niu, generate_2d_linear_models, \
-                                    generate_initial_2d_states
 
 
 class simulator():
