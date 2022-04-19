@@ -43,7 +43,7 @@ from simulator import simulator
     of tracks, RMSE can then be calculated.
 """
 
-i = 10
+i = 30
 num_vectors = i*5
 
 """
@@ -52,16 +52,14 @@ num_vectors = i*5
 """
 
 timestamp = datetime.datetime(2021, 4, 2, 12, 28, 57)
-tMax = 60
+tMax = 120
 dt = 1
 tRange = tMax // dt
 plot_time_span = np.array([dt*i for i in range(tRange)])
 
 time_span = np.array([timestamp + datetime.timedelta(seconds=dt*i) for i in range(tRange)])
 
-monte_carlo_iterations = 5
-
-
+monte_carlo_iterations = 10
 
 
 """
@@ -74,8 +72,8 @@ q_y = 0.05
 sensor_x = 50  # Placing the sensor off-centre
 sensor_y = 0
 
-transition_model = CombinedLinearGaussianTransitionModel([ConstantVelocity(q_x),
-                                                      ConstantVelocity(q_y)])
+transition_model = CombinedLinearGaussianTransitionModel([ConstantVelocity(q_x), 
+                                                          ConstantVelocity(q_y)])
 measurement_model = CartesianToBearingRange(
 ndim_state=4,
 mapping=(0, 2),
@@ -140,7 +138,7 @@ for i in range(monte_carlo_iterations):
                                         prior = EKFprior,
                                         time_span=time_span))
     EnKF_monte_carlo_runs.append(nonlinear_simulator.simulate_track(predictor = EnKFpredictor, 
-                                        updater = EnKFupdater, 
+                                        updater = EnKFupdater,
                                         initial_state = initial_ground_truth,
                                         prior = EnKFprior,
                                         time_span=time_span))
@@ -163,8 +161,8 @@ RMSE_EKF = calc_RMSE(EKF_monte_carlo_runs[0],EKF_monte_carlo_runs[1])
 RMSE_EnKF = calc_RMSE(EnKF_monte_carlo_runs[0],EnKF_monte_carlo_runs[1])
 RMSE_EnSRF = calc_RMSE(EnSRF_monte_carlo_runs[0],EnSRF_monte_carlo_runs[1])
 
-#RMSE_LIST = [RMSE_EKF, RMSE_EnKF, RMSE_EnSRF]
-RMSE_LIST = [RMSE_EnKF]
+RMSE_LIST = [RMSE_EKF, RMSE_EnKF, RMSE_EnSRF]
+#RMSE_LIST = [RMSE_EnKF]
 
 """
 Now that we have our RMSE data, it is a matter of plotting it. For the paper,
@@ -176,7 +174,6 @@ varying ensemble sizes. Change ensemble size at the start of the script, run
 it, and a file is saved with the appropriate name.
 """
 
-
 for RMSE in RMSE_LIST:
     plot_list = plot_RMSE(RMSE, plot_time_span)
     
@@ -184,7 +181,6 @@ prefix = 'rmse_size'
 suffix = 'Ensemble.txt'
 filename = prefix+str(num_vectors)+suffix
 pack_RMSE_data(filename, RMSE_LIST)
-
 
 """
 Now, we will run the convergence experiments, to verify that our results 
@@ -197,16 +193,17 @@ Gaussian one.
 measurement_model = LinearGaussian(
 ndim_state=4,  # Number of state dimensions (position and velocity in 2D)
 mapping=(0, 2),  # Mapping measurement vector index to state index
-noise_covar=np.array([[5, 0],  # Covariance matrix for Gaussian PDF
-                      [0, 5]])
+noise_covar=np.array([[0.05, 0],  # Covariance matrix for Gaussian PDF
+                      [0, 0.05]])
 )
 linear_simulator = simulator(transition_model=transition_model,
                       measurement_model=measurement_model)
 KFpredictor = KalmanPredictor(transition_model)
 KFupdater = KalmanUpdater(measurement_model)
+EnKFpredictor = EnsemblePredictor(transition_model)
 EnKFupdater = EnsembleUpdater(measurement_model)
+EnSRFpredictor = EnsemblePredictor(transition_model)
 EnSRFupdater = EnsembleSqrtUpdater(measurement_model)
-
 
 """
 To get our data, we will run three simulations with varying values for 
@@ -254,13 +251,14 @@ for num_vectors in range(3):
 
 
 """
-This final block of code, serves as a quick preview of the RMSE results for
+This final block of code, serves as a quick preview of the RMSE results for 
 someone running simulations. This preview window is especially useful for 
-debugging filters in development, as you can see at a glance if an algorithm
-begins to diverge or perform worse than expected.
+debugging filters in development, as you can see at a glance if an algorithm 
+begins to diverge or perform worse than expected. 
 """
-RMSE_LIST = [RMSE_EnKF]
-#RMSE_LIST = [RMSE_KF, RMSE_EnKF, RMSE_EnSRF]
+
+#RMSE_LIST = [RMSE_EnKF]
+RMSE_LIST = [RMSE_KF, RMSE_EnKF, RMSE_EnSRF]
 plot_time_span = np.array([dt*i for i in range(tRange)])
 j=0
 for RMSE in RMSE_LIST:

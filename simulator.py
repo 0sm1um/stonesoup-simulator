@@ -5,8 +5,11 @@ from stonesoup.types.array import StateVector, CovarianceMatrix
 from stonesoup.types.state import GaussianState, EnsembleState
 
 from stonesoup.models.transition.linear import (CombinedLinearGaussianTransitionModel,
-                                                ConstantTurn, ConstantVelocity)
-from stonesoup.models.measurement.nonlinear import CartesianToElevationBearingRange, CartesianToBearingRange
+                                                ConstantVelocity)
+from stonesoup.models.transition.nonlinear import ConstantTurn
+
+from stonesoup.models.measurement.nonlinear import (CartesianToElevationBearingRange, 
+                                                    CartesianToBearingRange)
 from stonesoup.models.measurement.linear import LinearGaussian
 
 

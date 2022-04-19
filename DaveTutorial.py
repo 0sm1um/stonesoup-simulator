@@ -6,15 +6,15 @@ import datetime
 from stonesoup.types.array import StateVector, CovarianceMatrix
 from stonesoup.types.state import State, GaussianState, EnsembleState
 
-from stonesoup.models.transition.linear import (CombinedLinearGaussianTransitionModel,
+from stonesoup.models.transition.linear import (CombinedLinearGaussianTransitionModel, 
                                                 ConstantVelocity)
 from stonesoup.models.measurement.linear import LinearGaussian
+from stonesoup.models.measurement.nonlinear import CartesianToBearingRange
+
 from stonesoup.updater.ensemble import (EnsembleUpdater, EnsembleSqrtUpdater)
 from stonesoup.updater.kalman import KalmanUpdater, ExtendedKalmanUpdater
 from stonesoup.predictor.ensemble import EnsemblePredictor
 from stonesoup.predictor.kalman import KalmanPredictor, ExtendedKalmanPredictor
-from stonesoup.models.measurement.nonlinear import CartesianToBearingRange
-
 
 from RMSE_functions import calc_RMSE, plot_RMSE
 from MISC_functions import pack_RMSE_data
@@ -155,6 +155,7 @@ of many runs.
 #How many times do we want to run our simulation? Lets do 25!
 monte_carlo_iterations = 25
 KF_monte_carlo_runs = [] # Empty list to store simulation runs.
+j=1
 
 for i in range(monte_carlo_iterations):
     KF_monte_carlo_runs.append(simulator.simulate_track(predictor = KFpredictor, 
@@ -162,7 +163,8 @@ for i in range(monte_carlo_iterations):
                                         initial_state = initial_ground_truth,
                                         prior = KFprior,
                                         time_span=time_span))
-    print(monte_carlo_iterations) #This here is for YOUR benefit.
+    print('Iteration number ' + str(j)) #This here is for your benefit.
+    j=j+1
 
 RMSE_KF = calc_RMSE(KF_monte_carlo_runs[0],KF_monte_carlo_runs[1])
 
